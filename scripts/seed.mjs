@@ -26,7 +26,8 @@ if (!URL || !KEY) {
 }
 
 const db = createClient(URL, KEY, { auth: { autoRefreshToken: false, persistSession: false } })
-const EMAIL_DOMAIN = 'iturrospe.local'
+// GoTrue rechaza TLDs no enrutables (.local); se usa un dominio sintético válido.
+const EMAIL_DOMAIN = 'iturrospe.com.ar'
 
 async function crearUsuario({ usuario, nombre, pin, rol, estado, sector }) {
   const email = `${usuario}@${EMAIL_DOMAIN}`

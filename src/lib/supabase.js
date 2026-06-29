@@ -14,7 +14,9 @@ if (!supabaseConfigured) {
 }
 
 // Dominio sintético para el login usuario + PIN (ver sección 4).
-export const EMAIL_DOMAIN = 'iturrospe.local'
+// Nota: GoTrue rechaza TLDs no enrutables como .local, por eso se usa .com.ar.
+// No se envían emails reales: el alta crea la cuenta ya confirmada vía Edge Function.
+export const EMAIL_DOMAIN = 'iturrospe.com.ar'
 export const usuarioToEmail = (usuario) =>
   `${String(usuario).trim().toLowerCase()}@${EMAIL_DOMAIN}`
 

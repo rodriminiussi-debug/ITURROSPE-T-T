@@ -26,7 +26,30 @@ dashboard. Calidad deja comentarios y no conformidades.
   en iOS (`src/components/InstallPrompt.jsx`).
 - Deep link `/plano/{token}`: si se escanea con la cámara nativa, pide login y abre el plano.
 
-## Puesta en marcha
+## Backend ya provisionado
+
+El proyecto Supabase ya está creado, migrado y con datos de ejemplo cargados
+(**separado** del proyecto de Lovable). Para correr la app sólo necesitás el
+`.env` con estos valores (la `anon key` es pública por diseño y está protegida
+por RLS):
+
+```
+VITE_SUPABASE_URL=https://jznpdalrljjoxcqicrfh.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6bnBkYWxybGpqb3hjcWljcmZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2OTk0MjksImV4cCI6MjA5ODI3NTQyOX0.1P1Vyw5uHcZ7d6bOmc6ulTSGufseV9t7P2569ZLS-sM
+```
+
+**Usuarios de prueba (PIN `123456`):** `jperez` (jefe) · `mlopez` (calidad) ·
+`rgomez` y `asosa` (operarios) · `pendiente` (sin aprobar, para probar la aprobación).
+
+> El alta de nuevos usuarios funciona **sin ningún paso manual**: la pantalla de
+> registro llama a la Edge Function `registrar-usuario`, que crea la cuenta ya
+> confirmada y en estado `pendiente`. No hace falta tocar la confirmación por
+> email en el dashboard.
+
+Si querés **recrear el backend desde cero** en otro proyecto, seguí los pasos de
+abajo.
+
+## Puesta en marcha (desde cero)
 
 ### 1. Instalar dependencias
 
@@ -42,6 +65,7 @@ Aplicá, **en orden**, las migraciones de `supabase/migrations/`:
 2. `0002_functions.sql` — triggers, recálculo automático y RPCs.
 3. `0003_rls.sql` — Row Level Security (matriz de permisos).
 4. `0004_seed_catalogo.sql` — los 8 procesos del catálogo.
+5. `0005_harden_internal_functions.sql` — cierra el acceso REST a funciones internas.
 
 Podés pegarlas en el **SQL Editor** de Supabase, o usar la CLI:
 
@@ -49,10 +73,18 @@ Podés pegarlas en el **SQL Editor** de Supabase, o usar la CLI:
 supabase db push   # si trabajás con la CLI y supabase/ vinculado
 ```
 
-> **Importante (login por PIN):** en **Authentication → Providers → Email**, poné
-> **Minimum password length = 6** y deshabilitá la confirmación por email. El login usa
-> usuario + PIN: internamente cada usuario se mapea a `usuario@iturrospe.local` y el PIN es
-> la contraseña.
+Después, desplegá la Edge Function de alta de usuarios:
+
+```bash
+supabase functions deploy registrar-usuario --no-verify-jwt
+```
+
+> **Login por PIN:** el login usa usuario + PIN. Internamente cada usuario se
+> mapea a `usuario@iturrospe.com.ar` (dominio sintético válido; no se envían
+> emails) y el PIN es la contraseña (la longitud mínima por defecto de Supabase
+> es 6, que es justo lo que necesita el PIN). La confirmación por email **no**
+> interviene porque el alta la hace la Edge Function `registrar-usuario` creando
+> la cuenta ya confirmada.
 
 ### 3. Variables de entorno
 
@@ -128,7 +160,8 @@ public/                  íconos PWA, favicon, manifest (generado)
 scripts/
   generate-icons.mjs     genera el set de íconos (I amarilla)
   seed.mjs               datos de ejemplo
-supabase/migrations/     esquema, funciones, RLS, catálogo
+supabase/migrations/     esquema, funciones, RLS, catálogo, hardening
+supabase/functions/      registrar-usuario (Edge Function de alta)
 src/
   lib/        supabase, auth (usuario+PIN), queries, helpers
   components/ Layout, ui (toast/modal/badge), InstallPrompt, Logo, SetupNotice

@@ -61,17 +61,28 @@ export function AuthProvider({ children }) {
   }, [cargarPerfil])
 
   const signUp = useCallback(async (usuario, nombre, pin) => {
-    const email = usuarioToEmail(usuario)
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password: String(pin),
-      options: {
-        data: { usuario: String(usuario).trim().toLowerCase(), nombre },
-      },
+    // El alta se hace vía Edge Function: crea la cuenta ya confirmada
+    // (sin depender de la confirmación por email) y en estado 'pendiente'.
+    const { data, error } = await supabase.functions.invoke('registrar-usuario', {
+      body: { usuario, nombre, pin },
     })
-    if (error) throw error
+    if (error) {
+      // Intentar extraer el mensaje del cuerpo de la respuesta de la función
+      let msg = 'No se pudo registrar'
+      try {
+        const body = await error.context?.json?.()
+        if (body?.error) msg = body.error
+      } catch {
+        msg = error.message || msg
+      }
+      throw new Error(msg)
+    }
+    if (data?.error) throw new Error(data.error)
+
+    // Iniciar sesión automáticamente para mostrar la pantalla "pendiente".
+    await signIn(usuario, pin)
     return data
-  }, [])
+  }, [signIn])
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut()
