@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" fill="#FFFFFF"/>
+  <!-- Letra "I" industrial condensada, amarilla, centrada -->
+  <g fill="#FFC107">
+    <!-- Barra superior -->
+    <rect x="146" y="96" width="220" height="64" rx="6"/>
+    <!-- Asta central -->
+    <rect x="216" y="96" width="80" height="320" rx="6"/>
+    <!-- Barra inferior -->
+    <rect x="146" y="352" width="220" height="64" rx="6"/>
+  </g>
+</svg>
