@@ -55,6 +55,14 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 > al jefe **reingresar su propio PIN** como clave de seguridad antes de borrar la
 > cuenta de forma definitiva. Para conservar la trazabilidad, no se elimina a quien
 > ya tenga partes de trabajo o comentarios cargados (en ese caso, inactivalo).
+>
+> **Olvido de PIN:** en el Login hay **“¿Olvidaste tu PIN?”**: el operario ingresa su
+> usuario y deja una solicitud (Edge Function `solicitar-reset-pin`, sin email). El
+> jefe la ve marcada en **Usuarios** y, con **🔑 Cambiar PIN**, le asigna un PIN nuevo
+> de 6 dígitos (acción `reset_pin` de `admin-usuarios`).
+>
+> El **auto-registro** de siempre sigue disponible: cualquiera puede crear su cuenta
+> desde **“Registrate”** y queda `pendiente` hasta que el jefe la aprueba.
 
 Si querés **recrear el backend desde cero** en otro proyecto, seguí los pasos de
 abajo.
@@ -88,8 +96,10 @@ Después, desplegá las Edge Functions de usuarios:
 ```bash
 # Alta pública con aprobación posterior (auto-registro)
 supabase functions deploy registrar-usuario --no-verify-jwt
-# Gestión por el jefe: crear/eliminar usuarios (requiere sesión de jefe)
+# Gestión por el jefe: crear/eliminar usuarios y resetear PIN (requiere sesión de jefe)
 supabase functions deploy admin-usuarios
+# Olvido de PIN: deja una solicitud para que el jefe asigne un PIN nuevo
+supabase functions deploy solicitar-reset-pin --no-verify-jwt
 ```
 
 > **Login por PIN:** el login usa usuario + PIN. Internamente cada usuario se
@@ -174,7 +184,7 @@ scripts/
   generate-icons.mjs     genera el set de íconos (I amarilla)
   seed.mjs               datos de ejemplo
 supabase/migrations/     esquema, funciones, RLS, catálogo, hardening
-supabase/functions/      registrar-usuario (auto-registro) · admin-usuarios (crear/eliminar por el jefe)
+supabase/functions/      registrar-usuario (auto-registro) · admin-usuarios (crear/eliminar/reset PIN por el jefe) · solicitar-reset-pin (olvido de PIN)
 src/
   lib/        supabase, auth (usuario+PIN), queries, helpers
   components/ Layout, ui (toast/modal/badge), InstallPrompt, Logo, SetupNotice

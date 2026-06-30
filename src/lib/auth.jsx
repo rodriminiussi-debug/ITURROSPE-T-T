@@ -113,6 +113,19 @@ export function AuthProvider({ children }) {
     [invokeAdmin],
   )
 
+  const cambiarPinUsuario = useCallback(
+    (usuarioId, nuevoPin) => invokeAdmin({ action: 'reset_pin', usuario_id: usuarioId, nuevo_pin: nuevoPin }),
+    [invokeAdmin],
+  )
+
+  // Solicitud pública de reseteo de PIN (el operario no tiene sesión).
+  const solicitarResetPin = useCallback(async (usuario) => {
+    const { error } = await supabase.functions.invoke('solicitar-reset-pin', {
+      body: { usuario: String(usuario).trim().toLowerCase() },
+    })
+    if (error) throw new Error('No se pudo enviar la solicitud')
+  }, [])
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut()
     setProfile(null)
@@ -140,6 +153,8 @@ export function AuthProvider({ children }) {
     refreshProfile,
     crearUsuario,
     eliminarUsuario,
+    cambiarPinUsuario,
+    solicitarResetPin,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

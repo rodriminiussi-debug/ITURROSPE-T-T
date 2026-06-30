@@ -4,9 +4,10 @@
 // esta función EXIGE sesión: el llamador debe ser un jefe de planta activo.
 //
 // Acciones (POST { action, ... }):
-//   - "crear":    { usuario, nombre, pin, rol, sector? }  -> alta directa y activa
-//   - "eliminar": { usuario_id, pin }                     -> baja definitiva
-//                 (el `pin` es el del PROPIO jefe: clave de seguridad / reautenticación)
+//   - "crear":     { usuario, nombre, pin, rol, sector? }  -> alta directa y activa
+//   - "reset_pin": { usuario_id, nuevo_pin }               -> asigna un PIN nuevo
+//   - "eliminar":  { usuario_id, pin }                     -> baja definitiva
+//                  (el `pin` es el del PROPIO jefe: clave de seguridad / reautenticación)
 //
 // Deploy:  supabase functions deploy admin-usuarios
 // (SIN --no-verify-jwt: la plataforma valida el JWT; además revalidamos el rol.)
@@ -104,6 +105,28 @@ Deno.serve(async (req: Request) => {
       await admin.auth.admin.deleteUser(created.user!.id)
       return json({ error: upErr.message }, 400)
     }
+
+    return json({ ok: true })
+  }
+
+  // ================================================================
+  // RESET PIN (el jefe asigna un PIN nuevo a quien lo olvidó)
+  // ================================================================
+  if (action === 'reset_pin') {
+    const usuarioId = String(payload.usuario_id || '')
+    const nuevoPin = String(payload.nuevo_pin || '').trim()
+
+    if (!usuarioId) return json({ error: 'Falta el usuario' }, 400)
+    if (!/^\d{6}$/.test(nuevoPin)) return json({ error: 'El PIN nuevo debe tener 6 dígitos' }, 400)
+
+    const { error: pwErr } = await admin.auth.admin.updateUserById(usuarioId, { password: nuevoPin })
+    if (pwErr) return json({ error: pwErr.message }, 400)
+
+    // Limpia la marca de solicitud de reseteo.
+    await admin
+      .from('usuarios')
+      .update({ reset_pin_solicitado: false, reset_pin_solicitado_at: null })
+      .eq('id', usuarioId)
 
     return json({ ok: true })
   }
