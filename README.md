@@ -45,6 +45,16 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 > registro llama a la Edge Function `registrar-usuario`, que crea la cuenta ya
 > confirmada y en estado `pendiente`. No hace falta tocar la confirmación por
 > email en el dashboard.
+>
+> **Alta directa por el jefe:** desde **Gestión → Usuarios → ➕ Nuevo usuario** el
+> jefe crea cuentas sin email (usuario + PIN de 6 dígitos), ya autorizadas y
+> activas, eligiendo el rol. Lo maneja la Edge Function `admin-usuarios`, que
+> exige una sesión de jefe activo.
+>
+> **Eliminar usuarios:** en el detalle de un usuario, **🗑 Eliminar usuario** pide
+> al jefe **reingresar su propio PIN** como clave de seguridad antes de borrar la
+> cuenta de forma definitiva. Para conservar la trazabilidad, no se elimina a quien
+> ya tenga partes de trabajo o comentarios cargados (en ese caso, inactivalo).
 
 Si querés **recrear el backend desde cero** en otro proyecto, seguí los pasos de
 abajo.
@@ -73,10 +83,13 @@ Podés pegarlas en el **SQL Editor** de Supabase, o usar la CLI:
 supabase db push   # si trabajás con la CLI y supabase/ vinculado
 ```
 
-Después, desplegá la Edge Function de alta de usuarios:
+Después, desplegá las Edge Functions de usuarios:
 
 ```bash
+# Alta pública con aprobación posterior (auto-registro)
 supabase functions deploy registrar-usuario --no-verify-jwt
+# Gestión por el jefe: crear/eliminar usuarios (requiere sesión de jefe)
+supabase functions deploy admin-usuarios
 ```
 
 > **Login por PIN:** el login usa usuario + PIN. Internamente cada usuario se
@@ -161,7 +174,7 @@ scripts/
   generate-icons.mjs     genera el set de íconos (I amarilla)
   seed.mjs               datos de ejemplo
 supabase/migrations/     esquema, funciones, RLS, catálogo, hardening
-supabase/functions/      registrar-usuario (Edge Function de alta)
+supabase/functions/      registrar-usuario (auto-registro) · admin-usuarios (crear/eliminar por el jefe)
 src/
   lib/        supabase, auth (usuario+PIN), queries, helpers
   components/ Layout, ui (toast/modal/badge), InstallPrompt, Logo, SetupNotice
