@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useLocation, Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
+import { Modal } from '../components/ui'
 import Logo from '../components/Logo'
 
 export default function Login() {
@@ -11,6 +12,7 @@ export default function Login() {
   const [pin, setPin] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [resetOpen, setResetOpen] = useState(false)
 
   // Si ya hay sesión activa, ir a destino
   if (user && esActivo) {
@@ -78,11 +80,88 @@ export default function Login() {
         <button className="btn btn-primary btn-block btn-lg" disabled={loading}>
           {loading ? 'Ingresando…' : 'Ingresar'}
         </button>
+
+        <button
+          type="button"
+          className="btn btn-ghost btn-block btn-sm mt"
+          onClick={() => setResetOpen(true)}
+        >
+          ¿Olvidaste tu PIN?
+        </button>
       </form>
 
       <p className="center muted small mt">
         ¿No tenés cuenta? <Link to="/registro">Registrate</Link>
       </p>
+
+      {resetOpen && (
+        <ResetPinModal usuarioInicial={usuario} onClose={() => setResetOpen(false)} />
+      )}
     </div>
+  )
+}
+
+// Olvido de PIN: deja una solicitud para que el jefe asigne un PIN nuevo.
+function ResetPinModal({ usuarioInicial, onClose }) {
+  const { solicitarResetPin } = useAuth()
+  const [usuario, setUsuario] = useState(usuarioInicial || '')
+  const [estado, setEstado] = useState('') // '' | 'enviando' | 'ok' | error
+  const [msg, setMsg] = useState('')
+
+  const enviar = async () => {
+    if (!/^[a-z0-9._-]{3,}$/.test(usuario.trim().toLowerCase())) {
+      setEstado('error')
+      setMsg('Ingresá tu usuario')
+      return
+    }
+    setEstado('enviando')
+    setMsg('')
+    try {
+      await solicitarResetPin(usuario)
+      setEstado('ok')
+    } catch (e) {
+      setEstado('error')
+      setMsg(e.message || 'No se pudo enviar la solicitud')
+    }
+  }
+
+  return (
+    <Modal title="¿Olvidaste tu PIN?" onClose={onClose}>
+      {estado === 'ok' ? (
+        <>
+          <p className="mb">
+            ✅ Listo. Avisale al <span className="bold">jefe de planta</span>: él te va a
+            asignar un PIN nuevo desde su cuenta.
+          </p>
+          <button className="btn btn-primary btn-block" onClick={onClose}>Entendido</button>
+        </>
+      ) : (
+        <>
+          <p className="muted small mb">
+            Ingresá tu usuario y enviá la solicitud. El jefe te asignará un PIN nuevo
+            (no se usa email).
+          </p>
+          <div className="field">
+            <label className="label">Usuario</label>
+            <input
+              className="input"
+              autoCapitalize="none"
+              autoCorrect="off"
+              placeholder="ej. jperez"
+              value={usuario}
+              onChange={(e) => setUsuario(e.target.value)}
+            />
+          </div>
+          {estado === 'error' && <div className="danger-text small mb">{msg}</div>}
+          <button
+            className="btn btn-primary btn-block btn-lg"
+            disabled={estado === 'enviando'}
+            onClick={enviar}
+          >
+            {estado === 'enviando' ? 'Enviando…' : 'Solicitar PIN nuevo'}
+          </button>
+        </>
+      )}
+    </Modal>
   )
 }

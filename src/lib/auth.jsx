@@ -84,6 +84,48 @@ export function AuthProvider({ children }) {
     return data
   }, [signIn])
 
+  // Gestión de usuarios por el jefe (Edge Function admin-usuarios).
+  const invokeAdmin = useCallback(async (body) => {
+    const { data, error } = await supabase.functions.invoke('admin-usuarios', { body })
+    if (error) {
+      let msg = 'No se pudo completar la operación'
+      try {
+        const b = await error.context?.json?.()
+        if (b?.error) msg = b.error
+        else msg = error.message || msg
+      } catch {
+        msg = error.message || msg
+      }
+      throw new Error(msg)
+    }
+    if (data?.error) throw new Error(data.error)
+    return data
+  }, [])
+
+  const crearUsuario = useCallback(
+    ({ usuario, nombre, pin, rol, sector }) =>
+      invokeAdmin({ action: 'crear', usuario, nombre, pin, rol, sector }),
+    [invokeAdmin],
+  )
+
+  const eliminarUsuario = useCallback(
+    (usuarioId, pin) => invokeAdmin({ action: 'eliminar', usuario_id: usuarioId, pin }),
+    [invokeAdmin],
+  )
+
+  const cambiarPinUsuario = useCallback(
+    (usuarioId, nuevoPin) => invokeAdmin({ action: 'reset_pin', usuario_id: usuarioId, nuevo_pin: nuevoPin }),
+    [invokeAdmin],
+  )
+
+  // Solicitud pública de reseteo de PIN (el operario no tiene sesión).
+  const solicitarResetPin = useCallback(async (usuario) => {
+    const { error } = await supabase.functions.invoke('solicitar-reset-pin', {
+      body: { usuario: String(usuario).trim().toLowerCase() },
+    })
+    if (error) throw new Error('No se pudo enviar la solicitud')
+  }, [])
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut()
     setProfile(null)
@@ -109,6 +151,10 @@ export function AuthProvider({ children }) {
     signUp,
     signOut,
     refreshProfile,
+    crearUsuario,
+    eliminarUsuario,
+    cambiarPinUsuario,
+    solicitarResetPin,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
